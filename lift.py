@@ -166,7 +166,7 @@ class Lift(Thread):
         self._door.open()
 
     def process_next(self):
-        print("in process_next, _next len = %d, _state=%d, _cur_floor = %d" % (len(self._next), self._state, self._cur_floor))
+        # print("in process_next, _next len = %d, _state=%d, _cur_floor = %d" % (len(self._next), self._state, self._cur_floor))
         if len(self._next) == 0:
             return
 

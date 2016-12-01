@@ -3,8 +3,37 @@ from tkinter import *
 from random import randint
 from lift import *
 
+
 class LiftSysV(Canvas):
     pass
+
+
+class UpDownBtn(Canvas):
+    def __init__(self, parent, floor_count=6):
+        Canvas.__init__(self, parent, borderwidth=1)
+        self._floor_count = floor_count
+        self.configure(width=40, height=LiftV.HEIGHT * floor_count)
+
+        pts_up = (0, 15, 8, 0, 16, 15)
+        pts_down = (0, 0, 16, 0, 8, 15)
+
+        add_offset = lambda x, offset: tuple(
+            val + offset[0] if index % 2 == 0 else val + offset[1] for index, val in enumerate(x))
+        pts_up = add_offset(pts_up, (2, LiftV.HEIGHT / 2))
+        pts_down = add_offset(pts_down, (22, LiftV.HEIGHT / 2))
+        self.up_downs = []
+        for i in range(8):
+            self.up_downs.append((self.create_polygon(pts_up, fill='green'),
+                                  self.create_polygon(pts_down, fill='green')))
+            pts_up = add_offset(pts_up, (0, LiftV.HEIGHT))
+            pts_down = add_offset(pts_down, (0, LiftV.HEIGHT))
+
+        self.bind("<Button-1>", self.click)
+
+    def click(self, event):
+        item = self.find_withtag(CURRENT)
+        print(item)
+        print(self.up_downs)
 
 
 class LiftV(Canvas):
@@ -73,10 +102,10 @@ def testall():
     root.resizable(False, False)
     canvas = Canvas(root, width=600, height=600)
     canvas.pack()
-    for in range(8):
-        canvas.create_polygon()
 
-    canvas.create_text(20, 20, text='Ham')  # draw some text
+    up_down = UpDownBtn(canvas, 8)
+    up_down.pack
+    canvas.create_window(2, 10, window=up_down, anchor='nw')
 
     for i in range(3):
         lift = Lift(8)
@@ -98,7 +127,7 @@ def test_liftv():
     sys.exit()
 
 
-#test_liftv()
+# test_liftv()
 testall()
 # create two ball objects and animate them
 # ball1 = Ball(canvas, 10, 10, 30, 30)
