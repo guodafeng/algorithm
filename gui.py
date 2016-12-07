@@ -5,7 +5,24 @@ from lift import *
 
 
 class LiftSysV(Canvas):
-    pass
+    def __init__(self, parent, floor_count=6):
+        Canvas.__init__(self, parent, borderwidth=1)
+        self._floor_count = floor_count
+        up_down = UpDownBtn(self, floor_count)
+        up_down.pack()
+        self.create_window(2, 10, window=up_down, anchor='nw')
+
+        self._lifts = []
+        self._liftvs = []
+        for i in range(3):
+            lift = Lift(floor_count)
+            liftv = LiftV(self, lift)
+            liftv.pack()
+            self.create_window(50 + (LiftV.WIDTH + 2) * i, 10, window=liftv, anchor='nw')
+            self._lifts.append(lift)
+            self._liftvs.append(liftv)
+
+        self.configure(width=50 + (LiftV.WIDTH + 2)*3 , height= 10 + LiftV.HEIGHT * floor_count)
 
 
 class UpDownBtn(Canvas):
@@ -22,18 +39,28 @@ class UpDownBtn(Canvas):
         pts_up = add_offset(pts_up, (2, LiftV.HEIGHT / 2))
         pts_down = add_offset(pts_down, (22, LiftV.HEIGHT / 2))
         self.up_downs = []
-        for i in range(8):
+        self.reqs = []
+        for i in range(floor_count):
             self.up_downs.append((self.create_polygon(pts_up, fill='green'),
                                   self.create_polygon(pts_down, fill='green')))
             pts_up = add_offset(pts_up, (0, LiftV.HEIGHT))
             pts_down = add_offset(pts_down, (0, LiftV.HEIGHT))
 
+            self.reqs.append([0, 0])
+
         self.bind("<Button-1>", self.click)
 
     def click(self, event):
         item = self.find_withtag(CURRENT)
-        print(item)
-        print(self.up_downs)
+        if item:
+            floor_num = (self._floor_count * 2 - item[0]) // 2 + 1
+            upordown = (self._floor_count * 2 - item[0]) % 2  # 0-down 1-up
+            self.reqs[floor_num - 1][upordown] = 1
+            self.itemconfig(CURRENT, fill='red')
+
+    def clear_req(self, floor_num, upordown):
+        self.reqs[floor_num - 1][upordown] = 0
+        self.itemconfig((self._floor_count - floor_num + 1) * 2 - upordown, fill='green')
 
 
 class LiftV(Canvas):
@@ -97,33 +124,37 @@ class LiftV(Canvas):
 
 def testall():
     # initialize root Window and canvas
-    root = Tk()
     root.title("Balls")
     root.resizable(False, False)
     canvas = Canvas(root, width=600, height=600)
     canvas.pack()
 
-    up_down = UpDownBtn(canvas, 8)
-    up_down.pack
-    canvas.create_window(2, 10, window=up_down, anchor='nw')
-
-    for i in range(3):
-        lift = Lift(8)
-        liftv = LiftV(canvas, lift)
-        liftv.pack()
-        canvas.create_window(50 + (LiftV.WIDTH + 2) * i, 10, window=liftv, anchor='nw')
+    liftsysv = LiftSysV(canvas, 8)
+    liftsysv.pack()
+    canvas.create_window(2, 10, window=liftsysv, anchor='nw')
 
     root.mainloop()
+
+def win_deleted():
+    print("1111")
+    root.destroy()
+    print("2222222")
+    sys.exit()
+
+
+root = Tk()
+root.protocol("WM_DELETE_WINDOW", win_deleted)
 
 
 def test_liftv():
     # initialize root Window and canvas
-    root = Tk()
     root.title("test")
     root.resizable(False, False)
     liftv = LiftV(root, Lift(8))
     liftv.pack()
+
     root.mainloop()
+    print("closing.................")
     sys.exit()
 
 
