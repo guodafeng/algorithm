@@ -5,28 +5,30 @@ from lift import *
 
 
 class LiftSysV(Canvas):
-    def __init__(self, parent, floor_count=6):
+    def __init__(self, parent, floor_count=6, lift_count=3):
         Canvas.__init__(self, parent, borderwidth=1)
         self._floor_count = floor_count
-        up_down = UpDownBtn(self, floor_count)
+        self._lift_count = lift_count
+
+        self._liftsys = LiftSys(floor_count, lift_count)
+        up_down = UpDownBtn(self, floor_count, self._liftsys)
+
         up_down.pack()
         self.create_window(2, 10, window=up_down, anchor='nw')
 
-        self._lifts = []
         self._liftvs = []
-        for i in range(3):
-            lift = Lift(floor_count)
+        for i, lift in enumerate(self._liftsys._lifts):
             liftv = LiftV(self, lift)
             liftv.pack()
             self.create_window(50 + (LiftV.WIDTH + 2) * i, 10, window=liftv, anchor='nw')
-            self._lifts.append(lift)
             self._liftvs.append(liftv)
 
-        self.configure(width=50 + (LiftV.WIDTH + 2)*3 , height= 10 + LiftV.HEIGHT * floor_count)
+        self.configure(width=50 + (LiftV.WIDTH + 2) * 3, height=10 + LiftV.HEIGHT * floor_count)
 
+        self._liftsys.run()
 
 class UpDownBtn(Canvas):
-    def __init__(self, parent, floor_count=6):
+    def __init__(self, parent, floor_count, liftsys):
         Canvas.__init__(self, parent, borderwidth=1)
         self._floor_count = floor_count
         self.configure(width=40, height=LiftV.HEIGHT * floor_count)
@@ -39,14 +41,13 @@ class UpDownBtn(Canvas):
         pts_up = add_offset(pts_up, (2, LiftV.HEIGHT / 2))
         pts_down = add_offset(pts_down, (22, LiftV.HEIGHT / 2))
         self.up_downs = []
-        self.reqs = []
+        self._liftsys = liftsys
+        liftsys.subscribe_clear_req(self.clear_req)
         for i in range(floor_count):
             self.up_downs.append((self.create_polygon(pts_up, fill='green'),
                                   self.create_polygon(pts_down, fill='green')))
             pts_up = add_offset(pts_up, (0, LiftV.HEIGHT))
             pts_down = add_offset(pts_down, (0, LiftV.HEIGHT))
-
-            self.reqs.append([0, 0])
 
         self.bind("<Button-1>", self.click)
 
@@ -55,11 +56,10 @@ class UpDownBtn(Canvas):
         if item:
             floor_num = (self._floor_count * 2 - item[0]) // 2 + 1
             upordown = (self._floor_count * 2 - item[0]) % 2  # 0-down 1-up
-            self.reqs[floor_num - 1][upordown] = 1
+            self._liftsys.move_req(floor_num, upordown)
             self.itemconfig(CURRENT, fill='red')
 
     def clear_req(self, floor_num, upordown):
-        self.reqs[floor_num - 1][upordown] = 0
         self.itemconfig((self._floor_count - floor_num + 1) * 2 - upordown, fill='green')
 
 
@@ -67,7 +67,7 @@ class LiftV(Canvas):
     WIDTH = 80
     HEIGHT = 50
 
-    def __init__(self, parent, lift=Lift(6)):
+    def __init__(self, parent, lift):
         Canvas.__init__(self, parent, borderwidth=1)
 
         self.lift = lift
@@ -89,17 +89,17 @@ class LiftV(Canvas):
 
         self.run()
 
-    def floor_arrive(self, floor_num):
+    def floor_arrive(self, floor_num, intent):
         self.itemconfig(self.floor_text[floor_num - 1], fill='black')
 
     def click(self, event):
         item = self.find_withtag(CURRENT)
         if item and int(item[0] != self.lift.get_cur_floor()):
-            self.itemconfig(CURRENT, fill="blue")
-            self.update_idletasks()
-            self.after(200)
-            self.itemconfig(CURRENT, fill="red")
-            self.lift.add_inside_req(int(item[0]))
+            if self.lift.add_inside_req(int(item[0])):
+                self.itemconfig(CURRENT, fill="blue")
+                self.update_idletasks()
+                self.after(200)
+                self.itemconfig(CURRENT, fill="red")
 
     def update(self):
         while True:
@@ -134,6 +134,7 @@ def testall():
     canvas.create_window(2, 10, window=liftsysv, anchor='nw')
 
     root.mainloop()
+
 
 def win_deleted():
     print("1111")
